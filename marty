@@ -1,0 +1,156 @@
+#!/bin/bash
+# determine current path
+readonly MARTY_PATH="$(dirname "$(readlink -f $0)")"
+MARTY_PATH_TMP="$HOME/.marty/tmp"
+MARTY_PATH_CONFIGS="${MARTY_PATH}/configs"
+MARTY_PATH_SCRIPTS="${MARTY_PATH}/scripts"
+MARTY_PATH_LIBS="${MARTY_PATH}/libs"
+MARTY_SCRIPT_NAME="$(basename $0)"
+MARTY_VERSION="1.0"
+
+# output help docs, if provided then also the error message and exit with error code
+# @param string $1 (optional) error message
+# @return void 
+# @return code 0 on success else >= 1 on error
+function usage
+{
+	code=0
+	MARTY_SCRIPT_NAME="$(basename $0)"
+	
+	if [ -n "$1" ]; then
+		common_error "$1"
+		echo ""
+		code=1
+	fi 
+	
+	echo -e "$(cat <<-EOF
+		Usage:\t$MARTY_SCRIPT_NAME SCRIPT [OPTIONS]
+
+		Manditory argument(s):
+		\tSCRIPT                            the script name to run
+
+		General option(s):
+		\t--help, -h                        output help documents
+		\t--version, -v                     output script version
+
+		List options(s):
+		\t--list-profiles,-p                list profiles
+		\t--list-scripts,-l                 list scripts
+		
+		Profile options(s):
+		\t--profile=PROFILE,-P PROFILE      set the profile
+		\t--current-profile,-c              show the currently selected profile
+
+		Examples:
+		\t$MARTY_SCRIPT_NAME --help
+		\t$MARTY_SCRIPT_NAME -v
+
+		\n
+	EOF
+	)"
+}
+
+# validate inputs
+# @output string output messages during validation
+# @return code 0 on success else >= 1 on error
+function validate
+{
+	[ "$#" -eq 0 ] && 
+		usage && 
+		return 0 
+
+	echo "marty.validate()" >&2
+	echo "args: $@" >&2
+	echo "\$1: $1" >&2 
+	echo "\$2: $2" >&2 
+	echo "\$3: $3" >&2 
+	echo "\$4: $4" >&2 
+	echo "\$5: $5" >&2 
+	echo >&2
+
+	# expand args
+	eval set -- "$(common_args_expand "$@")"
+
+
+	while true; do
+		[ -z "$1" ] && 
+			break
+
+		arg="$1"
+		value="$2"
+
+		case "$arg" in
+			--help|-h)
+				usage
+				return 0
+				;;
+			--version|-v)
+				echo "$MARTY_VERSION"
+				echo 
+				return 0
+				;;
+			--profile|-P)
+				echo "profile: $value"
+				shift
+				;;
+			--list-scripts|-l)
+				cd "$MARTY_PATH_SCRIPTS" &>/dev/null
+
+				for name in $(find ./ -maxdepth 1 -type d \
+					| sed 's#^./##g' \
+					| grep -v '^\s*$' \
+					| sort -u); do
+						printf "%-30s %s\n" "$name" "$(cat ${MARTY_PATH_SCRIPTS}/$name/description 2>/dev/null)"
+				done
+
+				echo
+				return 0
+				;;
+			--list-profiles|-p)
+				profile_list
+				echo
+				return 0
+				;;
+			--current-profile|-c)
+				profile_current
+				code="$?"
+				echo
+				return $code
+				;;
+			*)
+				# chack invalid flags
+				[ ${arg:0:1} == "-" ] &&
+					usage "Invalid option '$1'" &&
+					return 1
+
+				[ ! -d "${MARTY_PATH_SCRIPTS}/$arg" ] && 
+					usage "Invalid script name '$arg'" &&
+					return 1
+				
+				shift
+				MARTY_PATH_SCRIPT="${MARTY_PATH_SCRIPTS}/$arg"
+
+				. "${MARTY_PATH_SCRIPT}/script.sh"
+				run_${arg} "$@"
+				code="$?"
+
+				[ "$code" -ne 0 ] && 
+					return "$code"
+				
+				return 0
+				;;
+		esac
+
+		shift
+	done
+
+	return 0
+}
+
+# load libs
+for file in $(find "${MARTY_PATH_LIBS}" -type f -name "*.lib.sh"); do
+	. "$file"
+done
+
+validate "$@"
+exit $?
