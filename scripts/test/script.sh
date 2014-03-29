@@ -57,9 +57,6 @@ function validate_test
 		usage_test && 
 		return 0 
 
-	# expand args
-	eval set -- "$(common_args_expand "$@")"
-
 	while true; do
 		[ -z "$1" ] && 
 			break
@@ -69,15 +66,15 @@ function validate_test
 
 		case "$arg" in
 			--all|-a)
-				for test in $(cd "${MARTY_PATH_SCRIPT}/cases"; /bin/ls -1d *); do
+				cd "${MARTY_PATH_SCRIPT}/cases"
+
+				for test in $(/bin/ls -1d *); do
 					# check if the test case exists
 					[ ! -f "${test}/test.sh" ] && 
 						continue
 
 					_flag_tests[${#_flag_tests[@]}]="$test"
 				done
-
-				echo "tests: ${_flag_tests[@]}"
 				;;
 			--case|-c)
 				_flag_case_numbers="${_flag_case_numbers}$value "
@@ -232,6 +229,8 @@ function run_test
 
 	[ "$code" -ne 0 ] && return "$code"
 
+	local time_start=$(date +%s)
+
 	# traverse the test cases
 	for i in $(seq 0 ${#_flag_tests[@]}); do
 		[ -z "${_flag_tests[$i]}" ] && continue
@@ -262,4 +261,9 @@ function run_test
 		printf "${COLOR_BYELLOW}%s:${COLOR_RESET} %b\n" "status" "$status"
 		echo
 	done
+
+	echo "total time: $(get_total_time "$time_start")"
+	echo
+
+	return 0
 }

@@ -61,9 +61,6 @@ function validate_initialize
 		usage_initialize && 
 		return 0 
 
-	# expand args
-	eval set -- "$(common_args_expand $@)"
-
 	while true; do
 		[ -z "$1" ] && 
 			break

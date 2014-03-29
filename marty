@@ -1,4 +1,6 @@
 #!/bin/bash
+MARTY_VERSION="1.0"
+MARTY_TIME_START="$(date +%s)"
 # determine current path
 readonly MARTY_PATH="$(dirname "$(readlink -f $0)")"
 MARTY_PATH_TMP="$HOME/.marty/tmp"
@@ -6,7 +8,6 @@ MARTY_PATH_CONFIGS="${MARTY_PATH}/configs"
 MARTY_PATH_SCRIPTS="${MARTY_PATH}/scripts"
 MARTY_PATH_LIBS="${MARTY_PATH}/libs"
 MARTY_SCRIPT_NAME="$(basename $0)"
-MARTY_VERSION="1.0"
 
 # output help docs, if provided then also the error message and exit with error code
 # @param string $1 (optional) error message
@@ -59,18 +60,8 @@ function validate
 		usage && 
 		return 0 
 
-	echo "marty.validate()" >&2
-	echo "args: $@" >&2
-	echo "\$1: $1" >&2 
-	echo "\$2: $2" >&2 
-	echo "\$3: $3" >&2 
-	echo "\$4: $4" >&2 
-	echo "\$5: $5" >&2 
-	echo >&2
-
 	# expand args
-	eval set -- "$(common_args_expand "$@")"
-
+	eval set -- "$(args_expand "$@")"
 
 	while true; do
 		[ -z "$1" ] && 

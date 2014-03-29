@@ -13,17 +13,8 @@ function common_error
 # expand the arguments give
 # @output string the options expanded
 # @return code 0 on success
-function common_args_expand
+function args_expand
 {
- 	echo "function common_args_expand()" >&2
-	echo "args: $@" >&2
-	echo "\$1: $1" >&2 
-	echo "\$2: $2" >&2 
-	echo "\$3: $3" >&2 
-	echo "\$4: $4" >&2 
-	echo "\$5: $5" >&2
-	echo  >&2  
-
 	for i in $(seq $#); do
 		# if short option with multiple options, like -abc
 		if [ "${1:0:1}" == "-" ] && 
@@ -38,9 +29,9 @@ function common_args_expand
 			grep '=' <(echo "$1") &>/dev/null
 
 			if [ $? -eq 0 ] && [ "${1:0:2}" == "--" ]; then
-				echo -n "$(sed 's/\(--[^=]*\)=\(.*\)/\1 \2/g' <(echo "$1"))"
+				echo -n "$(sed 's/\(--[^=]*\)=\(.*\)/\1 "\2"/g' <(echo "$1")) "
 			else 
-				echo -n "$1 "
+				echo -n "\"$1\" "
 			fi
 		fi
 
@@ -63,4 +54,32 @@ function trim
 		sed -e 's/^[[:space:]]*//g' -e 's/[[:space:]]*\$//g' <(echo "$1")
 		shift
 	done
+}
+
+# get total time, if no args provided then it will compute the 
+# time when the application started and current time
+# @param stirng $1 start time, in seconds since the epoch
+# @param string $2 (optional) end time, in seconds since epoch
+# @output string the time in hours, minutes and seconds  
+# @return code 0 on success else true
+function get_total_time
+{
+	local start="$1"
+	local end="$2"
+
+	# get current time if none provided
+	[ -z "$end" ] && end=$(date "+%s")
+
+	local total="$(((${end}-${start})))"
+
+	# calculate hours
+	local _total=$((($total / 3600))) 
+	[ "$_total" -gt 0 ] && echo -n "${_total} hours "
+
+	# calculate minutes
+	_total=$(((($total % 3660) / 60))) 
+	[ "$_total" -gt 0 ] && echo -n "${total} minutes "
+
+	# calculate seconds
+	echo "$(((($total % 3660) % 60))) seconds"
 }
